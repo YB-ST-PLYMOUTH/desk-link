@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>마케팅 데스크 열기</title>
+<style>
+  :root { --bg: #f6f7f9; --card: #fff; --fg: #111827; --muted: #6b7280; --border: #e5e7eb; --accent: #2563eb; --danger: #dc2626; }
+  @media (prefers-color-scheme: dark) { :root { --bg: #0b0d12; --card: #151821; --fg: #e5e7eb; --muted: #9ca3af; --border: #262a35; --accent: #60a5fa; --danger: #f87171; } }
+  * { box-sizing: border-box; }
+  body { margin: 0; min-height: 100vh; display: grid; place-items: center; padding: 16px; background: var(--bg); color: var(--fg);
+         font-family: Pretendard, "Apple SD Gothic Neo", "Malgun Gothic", system-ui, sans-serif; }
+  .card { width: 100%; max-width: 380px; background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 24px; text-align: center; }
+  h1 { margin: 0 0 6px; font-size: 18px; }
+  p { margin: 0; font-size: 13px; line-height: 1.6; color: var(--muted); }
+  a.btn { display: inline-block; margin-top: 16px; padding: 10px 18px; border-radius: 10px; background: var(--accent); color: #fff; text-decoration: none; font-weight: 600; font-size: 14px; }
+  code { display: block; margin-top: 12px; padding: 6px 8px; border-radius: 8px; background: var(--bg); font-size: 12px; word-break: break-all; color: var(--fg); }
+  .err { color: var(--danger); }
+</style>
+</head>
+<body>
+<main class="card">
+  <h1>마케팅 데스크</h1>
+  <p id="msg">접속 주소를 불러오는 중…</p>
+  <div id="extra"></div>
+</main>
+<script>
+  // 마케팅 데스크 서버가 켜질 때·IP가 바뀔 때 Google Sheet B1(업데이트 일시)·B2(대시보드 주소)를 갱신한다 (dashboard/src/lib/server/desk-link.ts).
+  // 이 페이지는 그 시트를 읽어 대시보드로 보낸다. 같은 사내망·와이파이에서만 열린다.
+  var SHEET_ID = "10bcD94uwuwgyGN7mG-Ur3WDgVjfJpoKDgIv2BEApY7k";
+  var msg = document.getElementById("msg"), extra = document.getElementById("extra");
+
+  function fail(text) {
+    msg.className = "err";
+    msg.textContent = text;
+    extra.innerHTML = '<a class="btn" href="https://docs.google.com/spreadsheets/d/' + SHEET_ID + '/edit">주소 시트 열기</a>';
+  }
+
+  window.deskLink = function (res) {
+    try {
+      var rows = res.table.rows;
+      var updated = rows[0] && rows[0].c[0] ? rows[0].c[0].v : "";
+      var url = rows[1] && rows[1].c[0] ? String(rows[1].c[0].v).trim() : "";
+      if (!/^https?:\/\//.test(url)) return fail("시트에 대시보드 주소가 없습니다.");
+      msg.textContent = "대시보드로 이동합니다…";
+      extra.innerHTML = "";
+      var a = document.createElement("a"); a.className = "btn"; a.href = url; a.textContent = "마케팅 데스크 열기";
+      var c = document.createElement("code"); c.textContent = url;
+      var p = document.createElement("p"); p.style.marginTop = "10px";
+      p.textContent = "업데이트 " + updated + " · 안 열리면 데스크 PC가 꺼져 있거나 다른 네트워크에 있는 것입니다.";
+      extra.append(a, c, p);
+      location.replace(url);
+    } catch (e) { fail("주소를 읽지 못했습니다."); }
+  };
+
+  var s = document.createElement("script");
+  s.src = "https://docs.google.com/spreadsheets/d/" + SHEET_ID + "/gviz/tq?range=B1:B2&headers=0&tqx=responseHandler:deskLink&t=" + Date.now();
+  s.onerror = function () { fail("주소 시트를 불러오지 못했습니다."); };
+  document.head.appendChild(s);
+  setTimeout(function () { if (msg.textContent.indexOf("불러오는") === 0) fail("주소 시트 응답이 없습니다."); }, 8000);
+</script>
+</body>
+</html>
